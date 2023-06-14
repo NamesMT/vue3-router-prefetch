@@ -5,14 +5,12 @@ import {
   defineProps,
   inject,
   onMounted,
-  onUnmounted,
   reactive,
   ref,
   watchEffect,
 } from 'vue'
 import type { Lazy } from '../type'
 import { isRouteComponent, linkProvideKey } from '../type'
-import { beginObserve, stopObserve } from '../observer'
 
 interface RouterLinkProps {
   /**
@@ -59,8 +57,6 @@ const props = defineProps<RouterLinkProps>()
 const link = reactive(useLink(props))
 
 const linkInjectValue = inject(linkProvideKey)
-
-const linkElementRef = ref<null | HTMLAnchorElement>(null)
 
 const mergedType = ref<'view' | 'hover' | 'none'>('view')
 
@@ -116,57 +112,17 @@ const handlePullResources = () => {
   }
 }
 
-onMounted(() => {
-  watchEffect(() => {
-    if (linkElementRef.value) {
-      if (mergedType.value === 'view') {
-        linkElementRef.value.removeEventListener(
-          'mouseenter',
-          handlePullResources,
-        )
-        beginObserve(linkElementRef.value, handlePullResources)
-      }
-      else if (mergedType.value === 'hover') {
-        linkElementRef.value.addEventListener(
-          'mouseenter',
-          handlePullResources,
-        )
-        stopObserve(linkElementRef.value)
-      }
-      else if (mergedType.value === 'none') {
-        linkElementRef.value.removeEventListener(
-          'mouseenter',
-          handlePullResources,
-        )
-        stopObserve(linkElementRef.value)
-      }
-    }
-  })
-})
-
-onUnmounted(() => {
-  if (linkElementRef.value)
-    stopObserve(linkElementRef.value)
-})
+onMounted(() => setTimeout(handlePullResources, 500))
 </script>
 
 <script lang="ts">
 export default {
   name: 'PrefetchLink',
-  inheritAttrs: false,
 }
 </script>
 
 <template>
-  <RouterLink v-slot="{ isActive, href, navigate }" v-bind="props" custom>
-    <a
-      v-bind="$attrs"
-      ref="linkElementRef"
-      :href="href"
-      :class="isActive ? activeClass : exactActiveClass"
-      @click="navigate"
-    >
-      <slot />
-    </a>
+  <RouterLink v-slot="slotProps" v-bind="props">
+    <slot v-bind="slotProps" />
   </RouterLink>
 </template>
